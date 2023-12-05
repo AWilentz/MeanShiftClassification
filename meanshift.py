@@ -42,7 +42,7 @@ def mean_shift(image, bandwidth=30):
 
     return clustered_image
 
-image_path = "/Users/alexwilentz/Downloads/2ce047b4-903f-4556-abb5-7e78466d6754-3.png"
+image_path = "GORP.jpeg"
 image = cv2.imread(image_path)
 
 # Perform mean shift clustering
