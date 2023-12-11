@@ -5,13 +5,30 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 def load_image(image_path):
-    return cv2.imread(image_path)
+    rbg = cv2.imread(image_path)
+    luv = cv2.cvtColor(rbg, cv2.COLOR_RGB2Luv)
+    return luv
 
 
-def ms_classify(input_img):
+def ms_classify(input_img, spatial=False):
+    num_cols = input_img.shape[1]
+    num_rows = input_img.shape[0]
     img = input_img.reshape((-1, 3))
 
-    bandwidth = 24
+    spatial = True
+    if spatial is True:
+        col_val = np.array([np.arange(num_cols)])
+        col_mat = np.repeat(col_val, num_rows, axis=0)
+        col_col = col_mat.reshape((-1, 1))
+
+        row_val = np.array([np.arange(num_rows)]).T
+        row_mat = np.repeat(row_val, num_cols, axis=1)
+        row_col = row_mat.reshape((-1, 1))
+
+        img = np.hstack((img, row_col))
+        img = np.hstack((img, col_col))
+
+    bandwidth = 45
     #bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     ms.fit(img)
