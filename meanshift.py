@@ -5,56 +5,39 @@
 
 import numpy as np
 import cv2
-import matplotlib.pyplot as plt
+from tqdm import tqdm
+import math
 
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2) ** 2))
 
-
-def mean_shift(image, bandwidth=30):
+def mean_shift(image, bandwidth=28):
     data = image.reshape((-1, 3))
-    for i in range(len(data)):
-        x = data[i]
+    cluster_centers = data.copy()
+    for i in tqdm(range(len(cluster_centers))):
+        x = cluster_centers[i]
 
         while True:
-            mean_shift_vector = np.zeros_like(x).astype('float64')
-            weights_sum = 0
+            dists = np.sqrt(((x-data)**2).sum(axis=1))
+            weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth))**2)
+            tiled_weights = np.tile(weights, [len(x), 1])
 
-            for j in range(len(data)):
-                xi = data[j]
-                distance = euclidean_distance(x, xi)
+            weights_sum = sum(weights)
+            new_x = np.multiply(tiled_weights.transpose(), data).sum(axis=0) / weights_sum
 
-                weight = np.exp(-0.5 * (distance / bandwidth) ** 2)
-
-                mean_shift_vector += weight * xi
-                weights_sum += weight
-
-            new_x = mean_shift_vector / weights_sum
-
-            if euclidean_distance(x, new_x) < 1e-5:
+            if euclidean_distance(x, new_x) < .01:
                 break
 
             x = new_x
 
-        data[i] = new_x
+        cluster_centers[i] = new_x
 
-    clustered_image = data.reshape(image.shape)
+    return cluster_centers
 
-    return clustered_image
-
-image_path = "GORP.jpeg"
+image_path = "GORP_downsample.jpg"
 image = cv2.imread(image_path)
 
-# Perform mean shift clustering
-clustered_image = mean_shift(image, bandwidth=30)
+cluster_centers = mean_shift(image)
 
-# Display the original and clustered images
-plt.figure(figsize=(12, 6))
-
-plt.subplot(1, 2, 1)
-plt.title("Original Image")
-plt.imshow(image)
-
-plt.subplot(1, 2, 2)
-plt.title("Mean Shift Clustering")
-plt.imshow(clustered_image)
+with open("clusters.txt", 'w') as f:
+    f.write(', '.join(str(item) for item in cluster_centers)+'\n')
