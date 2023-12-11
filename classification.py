@@ -31,6 +31,8 @@ def census_transform(luv_img):
         y = (img_gray[v:v + h - 2, u:u + w - 2] >= cp)
         census = (census << 1) | (img_gray[v:v + h - 2, u:u + w - 2] >= cp)
 
+    census = np.pad(census, ((1, 1), (1, 1)), 'constant', constant_values=np.mean(census))
+
     return census
 
 def ms_classify(input_img, spatial=False):
@@ -38,7 +40,7 @@ def ms_classify(input_img, spatial=False):
     num_rows = input_img.shape[0]
     img = input_img.reshape((-1, 3))
 
-    #census = census_transform(input_img)
+    census = census_transform(input_img)
 
     if spatial is True:
         col_val = np.array([np.arange(num_cols)])
@@ -52,9 +54,9 @@ def ms_classify(input_img, spatial=False):
         img = np.hstack((img, row_col))
         img = np.hstack((img, col_col))
 
-    #img = np.hstack((img, census))
+    img = np.hstack((img, census.reshape(-1,1)))
 
-    bandwidth = 18
+    bandwidth = 60
     #bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     ms.fit(img)
@@ -103,6 +105,8 @@ def ms_classify(input_img, spatial=False):
         if num_objs > 0:
             print("Class " + str(i) + ": " + str(num_objs) + str(" objects"))
             i += 1
+
+    cv2.imshow('Census', census)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
