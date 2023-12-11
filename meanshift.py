@@ -11,33 +11,57 @@ import math
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2) ** 2))
 
-def mean_shift(image, bandwidth=28):
+def mean_shift(image, bandwidth=3):
     data = image.reshape((-1, 3))
-    cluster_centers = data.copy()
-    for i in tqdm(range(len(cluster_centers))):
-        x = cluster_centers[i]
+    clusters = data.copy()
+
+    for i in tqdm(range(len(clusters))):
+        x = clusters[i]
 
         while True:
+            x_prev = x
+
             dists = np.sqrt(((x-data)**2).sum(axis=1))
             weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth))**2)
             tiled_weights = np.tile(weights, [len(x), 1])
-
+            
             weights_sum = sum(weights)
-            new_x = np.multiply(tiled_weights.transpose(), data).sum(axis=0) / weights_sum
+            x_new = np.multiply(tiled_weights.transpose(), data).sum(axis=0) / weights_sum
 
-            if euclidean_distance(x, new_x) < .01:
+            if euclidean_distance(x_prev, x_new) < .1:
                 break
 
-            x = new_x
+            x = x_new
 
-        cluster_centers[i] = new_x
+        clusters[i] = x
 
-    return cluster_centers
+    return clusters
 
 image_path = "GORP_downsample.jpg"
 image = cv2.imread(image_path)
 
-cluster_centers = mean_shift(image)
+bandwidth = 3
+clusters = mean_shift(image, bandwidth=bandwidth)
 
-with open("clusters.txt", 'w') as f:
-    f.write(', '.join(str(item) for item in cluster_centers)+'\n')
+centers = []
+labels = []
+
+for point in clusters:
+    num_clusters = 0
+    clustered = False
+    for idx, center in enumerate(centers):
+        if euclidean_distance(point, center) <= 20:
+            labels.append(idx)
+            clustered = True
+            break
+    if not clustered:
+        centers.append(point)
+        labels.append(num_clusters)
+        num_clusters += 1                  
+
+with open(f"centers{bandwidth}.txt", 'w') as f:
+    f.write(','.join(str(item) for item in centers))
+with open(f"clusters{bandwidth}.txt", 'w') as f:
+    f.write(','.join(str(item) for item in clusters))
+with open(f"labels{bandwidth}.txt", 'w') as f:
+    f.write(','.join(str(item) for item in labels))
