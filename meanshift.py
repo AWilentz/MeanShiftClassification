@@ -7,32 +7,83 @@ import numpy as np
 import cv2
 from tqdm import tqdm
 import math
+import concurrent.futures
 
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2) ** 2))
 
-def mean_shift(image, bandwidth=3):
+
+def mean_shift_iteration(data, clusters, i, bandwidth):
+    x = clusters[i]
+
+    while True:
+        x_prev = x
+
+        dists = np.sqrt(((x - data) ** 2).sum(axis=1))
+        weights = (1 / (bandwidth * math.sqrt(2 * math.pi))) * np.exp(-0.5 * ((dists / bandwidth) ** 2))
+        # weights = [1 if dist <= bandwidth else 0 for dist in dists]
+        tiled_weights = np.tile(weights, [len(x), 1]).transpose()
+
+        weights_sum = sum(weights)
+        x = np.multiply(tiled_weights, data).sum(axis=0) / max(weights_sum, 1)
+
+        if euclidean_distance(x_prev, x) < .01:
+            break
+
+    return x
+
+
+def mean_shift(image, bandwidth=3, threading=True):
     data = image.reshape((-1, len(image[0])))
     clusters = data.copy()
 
-    for i in tqdm(range(len(clusters))):
-        x = clusters[i]
 
-        while True:
-            x_prev = x
+    if threading is False:
+        counter = 0
+        print("Starting cluster for loop without threading.")
+        for i in range(len(clusters)):
 
-            dists = np.sqrt(((x-data)**2).sum(axis=1))
-            weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth)**2))
-            # weights = [1 if dist <= bandwidth else 0 for dist in dists]
-            tiled_weights = np.tile(weights, [len(x), 1]).transpose()
-            
-            weights_sum = sum(weights)
-            x = np.multiply(tiled_weights, data).sum(axis=0) / max(weights_sum, 1)
+            x = clusters[i]
 
-            if euclidean_distance(x_prev, x) < .001:
-                break
+            while True:
+                x_prev = x
 
-        clusters[i] = x
+                dists = np.sqrt(((x-data)**2).sum(axis=1))
+                weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth)**2))
+                # weights = [1 if dist <= bandwidth else 0 for dist in dists]
+                tiled_weights = np.tile(weights, [len(x), 1]).transpose()
+
+                weights_sum = sum(weights)
+                x = np.multiply(tiled_weights, data).sum(axis=0) / max(weights_sum, 1)
+
+                if euclidean_distance(x_prev, x) < .001:
+                    break
+
+            clusters[i] = x
+
+            counter += 1
+            if counter % 500 == 0:
+                print("Finished " + str(counter) + " out of " + str(len(clusters)))
+
+    else:  # if threading is True
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            # Start the load operations and mark each future with its URL
+            mean_shift_calls = {executor.submit(mean_shift_iteration, data, clusters, cluster, bandwidth): cluster
+                                for cluster in range(len(clusters))}
+            print("Starting cluster for loop with threading.")
+            counter = 0
+            for res in concurrent.futures.as_completed(mean_shift_calls):
+                c = mean_shift_calls[res]
+                try:
+                    clusters[c] = res.result()
+                except Exception as exc:
+                    print('Generated an exception.')
+                else:
+                    counter += 1
+                    if counter % 500 == 0:
+                        print("Finished " + str(counter) + " out of " + str(len(clusters)))
+
 
     centers = []
     labels = []
