@@ -27,7 +27,7 @@ def mean_shift_iteration(data, clusters, i, bandwidth):
         weights_sum = sum(weights)
         x = np.multiply(tiled_weights, data).sum(axis=0) / max(weights_sum, 1)
 
-        if euclidean_distance(x_prev, x) < .01:
+        if euclidean_distance(x_prev, x) < .001:
             break
 
     return x
@@ -36,7 +36,6 @@ def mean_shift_iteration(data, clusters, i, bandwidth):
 def mean_shift(image, bandwidth=3, threading=True):
     data = image.reshape((-1, len(image[0])))
     clusters = data.copy()
-
 
     if threading is False:
         counter = 0
@@ -56,7 +55,7 @@ def mean_shift(image, bandwidth=3, threading=True):
                 weights_sum = sum(weights)
                 x = np.multiply(tiled_weights, data).sum(axis=0) / max(weights_sum, 1)
 
-                if euclidean_distance(x_prev, x) < .001:
+                if euclidean_distance(x_prev, x) < .01:
                     break
 
             clusters[i] = x
