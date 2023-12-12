@@ -35,6 +35,7 @@ def census_transform(luv_img):
 
     return census
 
+
 def ms_classify(input_img, spatial=False):
     num_cols = input_img.shape[1]
     num_rows = input_img.shape[0]
