@@ -22,7 +22,7 @@ def mean_shift(image, bandwidth=3):
             x_prev = x
 
             dists = np.sqrt(((x-data)**2).sum(axis=1))
-            weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth))**2)
+            weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth)**2))
             tiled_weights = np.tile(weights, [len(x), 1])
             
             weights_sum = sum(weights)
@@ -35,33 +35,20 @@ def mean_shift(image, bandwidth=3):
 
         clusters[i] = x
 
-    return clusters
+    centers = []
+    labels = []
 
-image_path = "GORP_downsample.jpg"
-image = cv2.imread(image_path)
+    for point in clusters:
+        num_clusters = 0
+        clustered = False
+        for idx, center in enumerate(centers):
+            if euclidean_distance(point, center) <= 10:
+                labels.append(idx)
+                clustered = True
+                break
+        if not clustered:
+            centers.append(point)
+            labels.append(num_clusters)
+            num_clusters += 1
 
-bandwidth = 3
-clusters = mean_shift(image, bandwidth=bandwidth)
-
-centers = []
-labels = []
-
-for point in clusters:
-    num_clusters = 0
-    clustered = False
-    for idx, center in enumerate(centers):
-        if euclidean_distance(point, center) <= 20:
-            labels.append(idx)
-            clustered = True
-            break
-    if not clustered:
-        centers.append(point)
-        labels.append(num_clusters)
-        num_clusters += 1                  
-
-with open(f"centers{bandwidth}.txt", 'w') as f:
-    f.write(','.join(str(item) for item in centers))
-with open(f"clusters{bandwidth}.txt", 'w') as f:
-    f.write(','.join(str(item) for item in clusters))
-with open(f"labels{bandwidth}.txt", 'w') as f:
-    f.write(','.join(str(item) for item in labels))
+    return np.array(centers), np.array(labels)
