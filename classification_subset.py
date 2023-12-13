@@ -5,10 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from meanshift import mean_shift
 
+# Global variables
+BANDWIDTH = 45  # 45 works decently with sklearn's mean shift
+SUBSET_SIZE = 5000
+CUSTOM = False
+
 
 def load_image(image_path):
-    rbg = cv2.imread(image_path)
-    luv = cv2.cvtColor(rbg, cv2.COLOR_RGB2Luv)
+    bgr = cv2.imread(image_path)
+    rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+    luv = cv2.cvtColor(rgb, cv2.COLOR_RGB2Luv)
     return luv
 
 
@@ -32,14 +38,23 @@ def census_transform(luv_img):
     return census
 
 
-def highpass_filter(luv_img):
+def highpass_filter(luv_img, sigma):
     img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
 
     h, w = img_gray.shape
-    hp_filtered_img = img_gray - cv2.GaussianBlur(img_gray, (h - 1, w - 1), int(np.sqrt((h + w) / 2) * 4))
+    hp_filtered_img = img_gray - cv2.GaussianBlur(img_gray, (h - 1, w - 1), sigma)
 
     return hp_filtered_img
+
+def lowpass_filter(luv_img, sigma):
+    #img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
+    img_gray = cv2.cvtColor(luv_img, cv2.COLOR_RGB2GRAY)
+
+    h, w = img_gray.shape
+    lp_filtered_img = cv2.GaussianBlur(img_gray, (h - 1, w - 1), sigma)
+
+    return lp_filtered_img
 
 
 def find_nearest_neighbor_label(point, labeled_points, labels):
@@ -60,8 +75,36 @@ def ms_classify(input_img, spatial=False):
     img = input_img.reshape((-1, 3))
     num_pixels = img.shape[0]
 
-    hp_filtered_img = highpass_filter(input_img)
+    img_rgb = cv2.cvtColor(input_img, cv2.COLOR_LUV2RGB)
+    img_rgb_cols = img_rgb.reshape((-1, 3))
+    img = np.hstack((img, img_rgb_cols))
+
+    #img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
+
+    #m = np.mean(img[:,1])
+    img[:,1] = 5*(img[:,1] - np.min(img[:,1]))
+
+
+    hp_filtered_img = highpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) * 4)
     img = np.hstack((img, hp_filtered_img.reshape(-1, 1)))
+
+    #hp_filtered_img = highpass_filter(input_img, 0.4)
+    #img = np.hstack((img, hp_filtered_img.reshape(-1, 1)))
+
+    #lp_filtered_img = lowpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) / 2)
+    #img = np.hstack((img, lp_filtered_img.reshape(-1, 1)))
+
+    vis_dims = False
+    if vis_dims is True:
+        cv2.imshow('U*', input_img[:, :, 1] * 255)
+        cv2.imshow('V*', input_img[:, :, 2] * 255)
+        cv2.imshow('HPF image', hp_filtered_img * 255)
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
+
+
     print("Added high pass filter dimension.")
 
     if spatial is True:  # approach 1
@@ -77,21 +120,19 @@ def ms_classify(input_img, spatial=False):
         img = np.hstack((img, col_col))
 
     # subsetting procedure
-    subset_idxs = np.random.choice(img.shape[0], size=5000, replace=False)
-    img_subset = img[subset_idxs]
+    subset_idxs = np.random.choice(img.shape[0], size=SUBSET_SIZE, replace=False)
+    img_subset = img[subset_idxs, 1:]
     #img_subset=img
     #img = img_subset
 
-    bandwidth = 3 # 30 works decently with sklearn's mean shift
     # bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
 
     print("Starting subset clustering.")
-    custom = False
-    if custom is True:
-        cluster_centers, labels = mean_shift(img_subset, bandwidth=bandwidth)
+    if CUSTOM is True:
+        cluster_centers, labels = mean_shift(img_subset, bandwidth=BANDWIDTH)
 
     else:
-        ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+        ms = MeanShift(bandwidth=BANDWIDTH, bin_seeding=True)
         ms.fit(img_subset)
         labels = ms.labels_
         cluster_centers = ms.cluster_centers_
@@ -132,7 +173,7 @@ def ms_classify(input_img, spatial=False):
 
     for i in range(num_pixels):
         if labeled_img[i] == -1:
-            point = img[i]
+            point = img[i,1:]
             label = find_nearest_neighbor_label(point, img_subset, labels)
             labeled_img[i] = label
 
@@ -154,7 +195,7 @@ def ms_classify(input_img, spatial=False):
         large_enough_objs = stats[stats[:, 4] > 100]
         num_objs = large_enough_objs[large_enough_objs[:, 4] < 1000, :].shape[0]
         cv2.imshow('Label: ' + str(labelnum) + ', Num objs: ' + str(num_objs), erosion_mask * 255)
-        #cv2.imshow('Closing mask', closing_mask * 255)
+
 
         if num_objs > 0:
             print("Class " + str(i) + ": " + str(num_objs) + str(" objects"))
@@ -162,12 +203,13 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
 
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp1.jpeg'
+    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp3.jpeg'
     gorp_img = load_image(image_path)
     # highpass_filter(gorp_img)
     ms_classify(gorp_img)
