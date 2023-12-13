@@ -3,6 +3,7 @@ from sklearn.cluster import MeanShift, estimate_bandwidth
 from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 import numpy as np
+from meanshift import mean_shift
 
 def load_image(image_path):
     rbg = cv2.imread(image_path)
@@ -39,6 +40,17 @@ def highpass_filter(luv_img):
 
     return hp_filtered_img
 
+def find_nearest_neighbor(point, labeled_points, labels):
+    repeated_point = np.tile(point, (labeled_points.shape[0], 1))
+
+    diff_between_points = repeated_point - labeled_points
+
+    dists = np.linalg.norm(diff_between_points, axis=1)
+
+    closest_point_idx = np.argmin(dists)
+    closest_label = labels[closest_point_idx]
+    return closest_label
+
 
 def ms_classify(input_img, spatial=False):
     num_cols = input_img.shape[1]
@@ -61,12 +73,17 @@ def ms_classify(input_img, spatial=False):
 
     img = np.hstack((img, hp_filtered_img.reshape(-1,1)))
 
-    bandwidth = 7
-    #bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
-    ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
-    ms.fit(img)
-    labels = ms.labels_
-    cluster_centers = ms.cluster_centers_
+    bandwidth = 16
+
+    custom = True
+    if custom is True:
+        cluster_centers, labels = mean_shift(img, bandwidth=bandwidth, threading=True)
+
+    else:
+        ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
+        ms.fit(img)
+        labels = ms.labels_
+        cluster_centers = ms.cluster_centers_
 
     labels_unique = np.unique(labels)
     n_clusters_ = len(labels_unique)
@@ -118,7 +135,7 @@ def ms_classify(input_img, spatial=False):
 
 
 if __name__ == '__main__':
-    image_path = 'GORP_downsample.jpg'
+    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp1.jpeg'
     gorp_img = load_image(image_path)
     #highpass_filter(gorp_img)
     ms_classify(gorp_img)
