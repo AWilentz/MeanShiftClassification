@@ -4,6 +4,7 @@ from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 import numpy as np
 from meanshift import mean_shift
+import time
 
 import sys
 # caution: path[0] is reserved for script path (or '' in REPL)
@@ -11,7 +12,7 @@ import sys
 
 # Global variables
 BANDWIDTH = 26 # 45 works decently with sklearn's mean shift
-SUBSET_SIZE = 5000
+SUBSET_SIZE = 128*128
 CUSTOM = True
 
 
@@ -98,7 +99,7 @@ def ms_classify(input_img, spatial=False):
     #lp_filtered_img = lowpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) / 2)
     #img = np.hstack((img, lp_filtered_img.reshape(-1, 1)))
 
-    vis_dims = True
+    vis_dims = False
     if vis_dims is True:
         cv2.imwrite('fig/u-gorp7.png', input_img[:, :, 1] * 255)
         cv2.imwrite('fig/v-gorp7.png', input_img[:, :, 2] * 255)
@@ -131,6 +132,7 @@ def ms_classify(input_img, spatial=False):
     # bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
 
     print("Starting subset clustering.")
+    t = time.time()
     if CUSTOM is True:
         cluster_centers, labels = mean_shift(img_subset, bandwidth=BANDWIDTH)
 
@@ -139,50 +141,40 @@ def ms_classify(input_img, spatial=False):
         ms.fit(img_subset)
         labels = ms.labels_
         cluster_centers = ms.cluster_centers_
+    print("Clustering time: " + str(t - time.time()))
 
     labels_unique = np.unique(labels)
     n_clusters_ = len(labels_unique)
 
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
 
     print("number of estimated clusters : %d" % n_clusters_)
 
-    # plt.figure(1)
-    # plt.clf()
-
-    colors = ["#dede00", "#377eb8", "#f781bf"]
-    markers = ["x", "o", "^"]
-
-    '''
-    for k, col in zip(range(n_clusters_), colors):
-        my_members = labels == k
-        cluster_center = cluster_centers[k]
-        plt.plot(img[my_members, 0], img[my_members, 1], markers[k], color=col)
-        plt.plot(
-            cluster_center[1],
-            cluster_center[3],
-            markers[k],
-            markerfacecolor=col,
-            markeredgecolor="k",
-            markersize=14,
-        )
-    #plt.title("Estimated number of clusters: %d" % n_clusters_)
-    #plt.show()
-    '''
-
-    labeled_img = np.zeros(num_pixels) - 1  # initialize all as -1
-    labeled_img[subset_idxs] = labels
+    labeled_img_flat = np.zeros(num_pixels) - 1  # initialize all as -1
+    labeled_img_flat[subset_idxs] = labels
 
     for i in range(num_pixels):
-        if labeled_img[i] == -1:
+        if labeled_img_flat[i] == -1:
             point = img[i,1:]
             label = find_nearest_neighbor_label(point, img_subset, labels)
-            labeled_img[i] = label
+            labeled_img_flat[i] = label
 
+    print("Clustering + NN time: " + str(time.time() - t))
 
-    labeled_img = labeled_img.reshape(input_img.shape[0:2])
+    labeled_img = labeled_img_flat.reshape(input_img.shape[0:2])
 
+    plt.figure(1)
+    plt.clf()
+
+    plot_features = False
+    if plot_features == True:
+
+        for k in range(len(labels_unique)):
+            my_members = labeled_img_flat == k
+            plt.plot(img[my_members, 2], img[my_members, -1], '.')
+        plt.title("Clustering with all 16384 points")
+        plt.xlabel("v*")
+        plt.ylabel("High pass filter value")
+        plt.savefig("fig/fig3_all_points.png")
 
 
     # cv2.imshow('Census', census)
@@ -198,7 +190,7 @@ def ms_classify(input_img, spatial=False):
         masks_list.append(erosion_mask)
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
-        large_enough_objs = stats[stats[:, 4] > 100]
+        large_enough_objs = stats[stats[:, 4] > 80]
         num_objs = large_enough_objs[large_enough_objs[:, 4] < 2000, :].shape[0]
         cv2.imshow('Label: ' + str(labelnum) + ', Num objs: ' + str(num_objs), erosion_mask * 255)
 
@@ -210,13 +202,21 @@ def ms_classify(input_img, spatial=False):
     # cv2.imshow('Census', census)
 
 
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-    cv2.imshow('Overlaying masks', img_gray)
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
+
+    img_gray_3 = 255 * np.ones((img_gray.shape[0], img_gray.shape[1], 3))
+    #img_gray_3[:, :, 0] = img_gray
+    #img_gray_3[:, :, 1] = img_gray
+    #img_gray_3[:, :, 2] = img_gray
+
     for mask in masks_list:
-        redImg = np.zeros(img_gray.shape, img_gray.dtype)
-        redImg[:, :] = (0, 0, 255)
-        redMask = cv2.bitwise_and(redImg, redImg, mask=mask)
-        cv2.addWeighted(redMask, 1, img_gray, 1, 0, img_gray)
+        #redImg = np.zeros(img_gray_3.shape, img_gray.dtype)
+        #redImg[:, :] = (0, 0, 255)
+        #redMask = cv2.bitwise_and(redImg, redImg, mask=mask)
+        #img_gray_3[mask] = cv2.addWeighted(img_gray_3, 0.5, img_gray_3, 1, 0.5, 0)[mask]
+        img_gray_3[mask][:,:,:] = (0, 0, 255)
+
+    cv2.imshow('Overlaying masks', img_gray_3)
 
 
     cv2.waitKey(0)
