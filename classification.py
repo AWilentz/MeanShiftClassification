@@ -61,7 +61,7 @@ def ms_classify(input_img, spatial=False):
 
     img = np.hstack((img, hp_filtered_img.reshape(-1,1)))
 
-    bandwidth = 16
+    bandwidth = 7
     #bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
     ms = MeanShift(bandwidth=bandwidth, bin_seeding=True)
     ms.fit(img)
@@ -118,7 +118,7 @@ def ms_classify(input_img, spatial=False):
 
 
 if __name__ == '__main__':
-    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp1.jpeg'
+    image_path = 'GORP_downsample.jpg'
     gorp_img = load_image(image_path)
     #highpass_filter(gorp_img)
     ms_classify(gorp_img)
