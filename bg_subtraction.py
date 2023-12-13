@@ -14,7 +14,7 @@ def bg_subtraction(img_path, bg_img_path):
     cv2.destroyAllWindows()
 
 if __name__ == '__main__':
-    img_path = 'gorp1.jpeg'
-    bg_img_path = 'gorp_bg.jpeg'
+    img_path = 'gorp1.jpg'
+    bg_img_path = 'gorp_bg.jpg'
     bg_subtraction(img_path, bg_img_path)
 

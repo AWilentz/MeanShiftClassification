@@ -12,9 +12,9 @@ sys.path.insert(1, '/Users/alexwilentz/MeanShift_py')
 import mean_shift as MS
 
 # Global variables
-BANDWIDTH = 18  # 45 works decently with sklearn's mean shift
-SUBSET_SIZE = 10000
-CUSTOM = True
+BANDWIDTH = 36 # 45 works decently with sklearn's mean shift
+SUBSET_SIZE = 5000
+CUSTOM = False
 
 
 def load_image(image_path):
@@ -199,7 +199,7 @@ def ms_classify(input_img, spatial=False):
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
         large_enough_objs = stats[stats[:, 4] > 100]
-        num_objs = large_enough_objs[large_enough_objs[:, 4] < 1000, :].shape[0]
+        num_objs = large_enough_objs[large_enough_objs[:, 4] < 2000, :].shape[0]
         cv2.imshow('Label: ' + str(labelnum) + ', Num objs: ' + str(num_objs), erosion_mask * 255)
 
 
@@ -215,7 +215,7 @@ def ms_classify(input_img, spatial=False):
 
 
 if __name__ == '__main__':
-    image_path = 'GORP.jpeg'
+    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp3.jpeg'
     gorp_img = load_image(image_path)
     # highpass_filter(gorp_img)
     ms_classify(gorp_img)
