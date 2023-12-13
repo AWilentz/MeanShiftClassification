@@ -7,9 +7,9 @@ from meanshift import mean_shift
 import time
 
 # Global variables
-BANDWIDTH = 26 # 45 works decently with sklearn's mean shift
-SUBSET_SIZE = 128*128
-CUSTOM = True
+BANDWIDTH = 50 # 45 works decently with sklearn's mean shift
+SUBSET_SIZE = 5000
+CUSTOM = False
 
 
 def load_image(image_path):
@@ -197,19 +197,16 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
 
+    color_list = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (127, 0, 255), (0, 127, 255),
+                  (255, 0, 127), (0, 255, 127), (255, 127, 0), (0, 155, 127)]
+
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
 
-    img_gray_3 = 255 * np.ones((img_gray.shape[0], img_gray.shape[1], 3))
-    #img_gray_3[:, :, 0] = img_gray
-    #img_gray_3[:, :, 1] = img_gray
-    #img_gray_3[:, :, 2] = img_gray
+    img_gray_3 = np.zeros((img_gray.shape[0], img_gray.shape[1], 3))
 
-    for mask in masks_list:
-        #redImg = np.zeros(img_gray_3.shape, img_gray.dtype)
-        #redImg[:, :] = (0, 0, 255)
-        #redMask = cv2.bitwise_and(redImg, redImg, mask=mask)
-        #img_gray_3[mask] = cv2.addWeighted(img_gray_3, 0.5, img_gray_3, 1, 0.5, 0)[mask]
-        img_gray_3[mask][:,:,:] = (0, 0, 255)
+    for j in range(min([len(masks_list), len(color_list)])):
+        mask = masks_list[j]
+        img_gray_3[mask==1] = color_list[j]
 
     cv2.imshow('Overlaying masks', img_gray_3)
 
