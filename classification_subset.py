@@ -79,12 +79,12 @@ def ms_classify(input_img, spatial=False):
     img_rgb_cols = img_rgb.reshape((-1, 3))
     img = np.hstack((img, img_rgb_cols))
 
-    #img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
+    # img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
 
     #m = np.mean(img[:,1])
     img[:,1] = 5*(img[:,1] - np.min(img[:,1]))
 
-
+    sigma = np.sqrt((num_rows + num_cols) / 2) * 4
     hp_filtered_img = highpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) * 4)
     img = np.hstack((img, hp_filtered_img.reshape(-1, 1)))
 
@@ -94,15 +94,14 @@ def ms_classify(input_img, spatial=False):
     #lp_filtered_img = lowpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) / 2)
     #img = np.hstack((img, lp_filtered_img.reshape(-1, 1)))
 
-    vis_dims = False
+    vis_dims = True
     if vis_dims is True:
-        cv2.imshow('U*', input_img[:, :, 1] * 255)
-        cv2.imshow('V*', input_img[:, :, 2] * 255)
-        cv2.imshow('HPF image', hp_filtered_img * 255)
-
-        cv2.waitKey(0)
-        cv2.destroyAllWindows()
-
+        cv2.imwrite('fig/u-gorp7.png', input_img[:, :, 1] * 255)
+        cv2.imwrite('fig/v-gorp7.png', input_img[:, :, 2] * 255)
+        cv2.imwrite('fig/r-gorp7.png', img_rgb[:, :, 0] * 255)
+        cv2.imwrite('fig/g-gorp7.png', img_rgb[:, :, 1] * 255)
+        cv2.imwrite('fig/b-gorp7.png', img_rgb[:, :, 2] * 255)
+        cv2.imwrite('fig/hpf-gorp7.png', hp_filtered_img * 255)
 
 
     print("Added high pass filter dimension.")
@@ -157,8 +156,8 @@ def ms_classify(input_img, spatial=False):
         cluster_center = cluster_centers[k]
         plt.plot(img[my_members, 0], img[my_members, 1], markers[k], color=col)
         plt.plot(
-            cluster_center[0],
             cluster_center[1],
+            cluster_center[3],
             markers[k],
             markerfacecolor=col,
             markeredgecolor="k",
