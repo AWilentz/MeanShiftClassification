@@ -5,10 +5,16 @@ import matplotlib.pyplot as plt
 import numpy as np
 from meanshift import mean_shift
 
+import sys
+# caution: path[0] is reserved for script path (or '' in REPL)
+sys.path.insert(1, '/Users/alexwilentz/MeanShift_py')
+
+import mean_shift as MS
+
 # Global variables
-BANDWIDTH = 45  # 45 works decently with sklearn's mean shift
-SUBSET_SIZE = 5000
-CUSTOM = False
+BANDWIDTH = 18  # 45 works decently with sklearn's mean shift
+SUBSET_SIZE = 10000
+CUSTOM = True
 
 
 def load_image(image_path):
@@ -75,14 +81,14 @@ def ms_classify(input_img, spatial=False):
     img = input_img.reshape((-1, 3))
     num_pixels = img.shape[0]
 
-    img_rgb = cv2.cvtColor(input_img, cv2.COLOR_LUV2RGB)
-    img_rgb_cols = img_rgb.reshape((-1, 3))
-    img = np.hstack((img, img_rgb_cols))
+    # img_rgb = cv2.cvtColor(input_img, cv2.COLOR_LUV2RGB)
+    # img_rgb_cols = img_rgb.reshape((-1, 3))
+    # img = np.hstack((img, img_rgb_cols))
 
     #img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
 
     #m = np.mean(img[:,1])
-    img[:,1] = 5*(img[:,1] - np.min(img[:,1]))
+    # img[:,1] = 5*(img[:,1] - np.min(img[:,1]))
 
 
     hp_filtered_img = highpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) * 4)
@@ -209,7 +215,7 @@ def ms_classify(input_img, spatial=False):
 
 
 if __name__ == '__main__':
-    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp3.jpeg'
+    image_path = 'GORP.jpeg'
     gorp_img = load_image(image_path)
     # highpass_filter(gorp_img)
     ms_classify(gorp_img)
