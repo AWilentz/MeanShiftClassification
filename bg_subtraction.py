@@ -1,6 +1,6 @@
 import cv2
 import matplotlib.pyplot as plt
-import numpy as np
+import s as np
 
 def bg_subtraction(img_path, bg_img_path):
     img = cv2.imread(img_path)

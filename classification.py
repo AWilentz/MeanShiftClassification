@@ -135,7 +135,7 @@ def ms_classify(input_img, spatial=False):
 
 
 if __name__ == '__main__':
-    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/gorp1.jpeg'
+    image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/GORP_downsample.jpeg'
     gorp_img = load_image(image_path)
     #highpass_filter(gorp_img)
     ms_classify(gorp_img)

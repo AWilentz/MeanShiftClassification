@@ -2,7 +2,7 @@ import cv2
 from meanshift import mean_shift
 from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
-import numpy as np
+import s as np
 
 def load_image(image_path):
     rbg = cv2.imread(image_path)

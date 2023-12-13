@@ -6,10 +6,6 @@ import numpy as np
 from meanshift import mean_shift
 import time
 
-import sys
-# caution: path[0] is reserved for script path (or '' in REPL)
-#sys.path.insert(1, '/Users/alexwilentz/MeanShift_py')
-
 # Global variables
 BANDWIDTH = 26 # 45 works decently with sklearn's mean shift
 SUBSET_SIZE = 128*128
@@ -201,7 +197,6 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
 
-
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
 
     img_gray_3 = 255 * np.ones((img_gray.shape[0], img_gray.shape[1], 3))
@@ -217,7 +212,6 @@ def ms_classify(input_img, spatial=False):
         img_gray_3[mask][:,:,:] = (0, 0, 255)
 
     cv2.imshow('Overlaying masks', img_gray_3)
-
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
