@@ -10,8 +10,8 @@ import sys
 #sys.path.insert(1, '/Users/alexwilentz/MeanShift_py')
 
 # Global variables
-BANDWIDTH = 18 # 45 works decently with sklearn's mean shift
-SUBSET_SIZE = 10000
+BANDWIDTH = 26 # 45 works decently with sklearn's mean shift
+SUBSET_SIZE = 5000
 CUSTOM = True
 
 
@@ -187,12 +187,15 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
     i = 1
+
+    masks_list = []
     for labelnum in range(len(labels_unique)):
 
         labelsN = (labeled_img == labelnum).astype(np.uint8)
 
         kernel2 = np.ones((3, 3), np.uint8)
         erosion_mask = cv2.erode(labelsN, kernel2)
+        masks_list.append(erosion_mask)
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
         large_enough_objs = stats[stats[:, 4] > 100]
@@ -207,12 +210,21 @@ def ms_classify(input_img, spatial=False):
     # cv2.imshow('Census', census)
 
 
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+    cv2.imshow('Overlaying masks', img_gray)
+    for mask in masks_list:
+        redImg = np.zeros(img_gray.shape, img_gray.dtype)
+        redImg[:, :] = (0, 0, 255)
+        redMask = cv2.bitwise_and(redImg, redImg, mask=mask)
+        cv2.addWeighted(redMask, 1, img_gray, 1, 0, img_gray)
+
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    image_path = 'data/gorp11.jpg'
+    image_path = 'data/gorp12_128.jpg'
     gorp_img = load_image(image_path)
     # highpass_filter(gorp_img)
     ms_classify(gorp_img)
