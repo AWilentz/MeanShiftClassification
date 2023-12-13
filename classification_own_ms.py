@@ -33,12 +33,21 @@ def census_transform(luv_img):
 
     return census
 
+def highpass_filter(luv_img):
+    img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
+
+    h, w = img_gray.shape
+    hp_filtered_img = img_gray - cv2.GaussianBlur(img_gray, (h-1, w-1), int(np.sqrt((h+w)/2)*4))
+
+    return hp_filtered_img
+
 def ms_classify(input_img, spatial=False):
     num_cols = input_img.shape[1]
     num_rows = input_img.shape[0]
     img = input_img.reshape((-1, 3))
 
-    #census = census_transform(input_img)
+    hp_filtered_img = highpass_filter(input_img)
 
     if spatial is True:
         col_val = np.array([np.arange(num_cols)])
@@ -52,9 +61,9 @@ def ms_classify(input_img, spatial=False):
         img = np.hstack((img, row_col))
         img = np.hstack((img, col_col))
 
-    #img = np.hstack((img, census))
+    # img = np.hstack((img, hp_filtered_img.reshape(-1,1)))
 
-    bandwidth = 6
+    bandwidth = 18
     #bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
     cluster_centers, labels = mean_shift(img, bandwidth=bandwidth)
 

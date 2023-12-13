@@ -11,7 +11,7 @@ import math
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2) ** 2))
 
-def mean_shift(image, bandwidth=3):
+def mean_shift(image, bandwidth=3, texture=False):
     data = image.reshape((-1, len(image[0])))
     clusters = data.copy()
 
