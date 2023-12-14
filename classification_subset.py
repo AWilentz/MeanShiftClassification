@@ -7,7 +7,7 @@ from meanshift import mean_shift
 import time
 
 # Global variables
-BANDWIDTH = 44 # 45 works decently with sklearn's mean shift
+BANDWIDTH = 43 # 45 works decently with sklearn's mean shift
 SUBSET_SIZE = 10000
 CUSTOM = True
 
@@ -138,7 +138,7 @@ def ms_classify(input_img, spatial=False):
         ms.fit(img_subset)
         labels = ms.labels_
         cluster_centers = ms.cluster_centers_
-    print("Clustering time: " + str(t - time.time()))
+    print("Clustering time: " + str(time.time() - t))
 
     labels_unique = np.unique(labels)
     n_clusters_ = len(labels_unique)
@@ -199,7 +199,7 @@ def ms_classify(input_img, spatial=False):
     # cv2.imshow('Census', census)
 
     color_list = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (127, 0, 255), (0, 127, 255),
-                  (255, 0, 127), (0, 255, 127), (255, 127, 0), (127, 255, 0), (127, 0, 0),
+                  (255, 0, 127), (255, 127, 0), (0, 255, 127), (127, 255, 0), (127, 0, 0),
                   (0, 127, 0), (0, 0, 127), (63, 0, 0), (0, 63, 0), (0, 0, 63)]
 
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
@@ -208,6 +208,7 @@ def ms_classify(input_img, spatial=False):
 
     for j in range(min([len(masks_list), len(color_list)])):
         mask = masks_list[j]
+        print(color_list[j])
         img_gray_3[mask==1] = color_list[j]
 
     cv2.imshow('Overlaying masks', img_gray_3)
