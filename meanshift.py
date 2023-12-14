@@ -7,14 +7,14 @@ import math
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2) ** 2))
 
-def mean_shift(image, bandwidth=20, texture=False, bandwidth_texture=20, kernel_flat=True):
+def mean_shift(image, bandwidth=24, texture=False, bandwidth_texture=24, kernel_flat=True):
     data = image.reshape((-1, len(image[0]))).astype(float)
     clusters = data.copy()
 
     max_shift = 1
 
     shifted = [False] * len(data)
-    while max_shift > .1:
+    while max_shift > .01:
         max_shift = 0
         for i in tqdm(range(0, len(clusters))):
             
@@ -33,8 +33,8 @@ def mean_shift(image, bandwidth=20, texture=False, bandwidth_texture=20, kernel_
 
             if texture:
                 weights_texture = (1 / (bandwidth_texture*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth_texture)**2))
-                tiled_weights = np.concatenate((np.tile(weights, [len(x), 1]).transpose(),
-                                                np.tile(weights_texture, [len(x), 1]).transpose()), axis=-1)
+                tiled_weights = np.concatenate((np.tile(weights, [len(x[:-1]), 1]).transpose(),
+                                                np.tile(weights_texture, [1, 1]).transpose()), axis=-1)
             else:
                 tiled_weights = np.tile(weights, [len(x), 1]).transpose()
             
@@ -44,7 +44,7 @@ def mean_shift(image, bandwidth=20, texture=False, bandwidth_texture=20, kernel_
             dist = euclidean_distance(x_prev, x)
             if dist > max_shift:
                 max_shift = dist
-            if dist < .1:
+            if dist < .01:
                 shifted[i] = True
 
             clusters[i] = x
@@ -56,7 +56,7 @@ def mean_shift(image, bandwidth=20, texture=False, bandwidth_texture=20, kernel_
     for point in clusters:
         clustered = False
         for idx, center in enumerate(centers):
-            if euclidean_distance(point, center) <= 1:
+            if euclidean_distance(point, center) <= 3:
                 labels.append(idx)
                 clustered = True
                 break

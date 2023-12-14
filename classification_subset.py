@@ -6,7 +6,7 @@ import numpy as np
 from meanshift import mean_shift
 
 # Global variables
-BANDWIDTH = 35 # 45 works decently with sklearn's mean shift
+BANDWIDTH = 43 # 45 works decently with sklearn's mean shift
 SUBSET_SIZE = 10000
 CUSTOM = True
 
@@ -79,12 +79,12 @@ def ms_classify(input_img, spatial=False):
     img_rgb_cols = img_rgb.reshape((-1, 3))
     img = np.hstack((img, img_rgb_cols))
 
-    # img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
+    #img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
 
     #m = np.mean(img[:,1])
     img[:,1] = 5*(img[:,1] - np.min(img[:,1]))
 
-    sigma = np.sqrt((num_rows + num_cols) / 2) * 4
+
     hp_filtered_img = highpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) * 4)
     img = np.hstack((img, hp_filtered_img.reshape(-1, 1)))
 
@@ -94,14 +94,15 @@ def ms_classify(input_img, spatial=False):
     #lp_filtered_img = lowpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) / 2)
     #img = np.hstack((img, lp_filtered_img.reshape(-1, 1)))
 
-    vis_dims = True
+    vis_dims = False
     if vis_dims is True:
-        cv2.imwrite('fig/u-gorp7.png', input_img[:, :, 1] * 255)
-        cv2.imwrite('fig/v-gorp7.png', input_img[:, :, 2] * 255)
-        cv2.imwrite('fig/r-gorp7.png', img_rgb[:, :, 0] * 255)
-        cv2.imwrite('fig/g-gorp7.png', img_rgb[:, :, 1] * 255)
-        cv2.imwrite('fig/b-gorp7.png', img_rgb[:, :, 2] * 255)
-        cv2.imwrite('fig/hpf-gorp7.png', hp_filtered_img * 255)
+        cv2.imshow('U*', input_img[:, :, 1] * 255)
+        cv2.imshow('V*', input_img[:, :, 2] * 255)
+        cv2.imshow('HPF image', hp_filtered_img * 255)
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+
 
 
     print("Added high pass filter dimension.")
@@ -156,8 +157,8 @@ def ms_classify(input_img, spatial=False):
         cluster_center = cluster_centers[k]
         plt.plot(img[my_members, 0], img[my_members, 1], markers[k], color=col)
         plt.plot(
+            cluster_center[0],
             cluster_center[1],
-            cluster_center[3],
             markers[k],
             markerfacecolor=col,
             markeredgecolor="k",
@@ -183,15 +184,19 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
     i = 1
+
+    masks_list = []
     for labelnum in range(len(labels_unique)):
 
         labelsN = (labeled_img == labelnum).astype(np.uint8)
 
         kernel2 = np.ones((3, 3), np.uint8)
         erosion_mask = cv2.erode(labelsN, kernel2)
+        print(erosion_mask)
+        masks_list.append(erosion_mask)
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
-        large_enough_objs = stats[stats[:, 4] > 100]
+        large_enough_objs = stats[stats[:, 4] > 80]
         num_objs = large_enough_objs[large_enough_objs[:, 4] < 2000, :].shape[0]
         cv2.imshow('Label: ' + str(labelnum) + ', Num objs: ' + str(num_objs), erosion_mask * 255)
 
@@ -202,12 +207,27 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
 
+    color_list = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (127, 0, 255), (0, 127, 255),
+                  (255, 0, 127), (0, 255, 127), (255, 127, 0), (127, 255, 0), (127, 0, 0),
+                  (0, 127, 0), (0, 0, 127), (63, 0, 0), (0, 63, 0), (0, 0, 63)]
+
+    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
+
+    img_gray_3 = np.zeros((img_gray.shape[0], img_gray.shape[1], 3))
+
+    for j in range(min([len(masks_list), len(color_list)])):
+        mask = masks_list[j]
+        img_gray_3[mask==1] = color_list[j]
+
+    cv2.imshow('Overlaying masks', img_gray_3)
+
+
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    image_path = 'data/gorp12.jpg'
+    image_path = 'data/gorp5.jpg'
     gorp_img = load_image(image_path)
     # highpass_filter(gorp_img)
     ms_classify(gorp_img)
