@@ -7,9 +7,9 @@ import time
 
 # Global variables
 BANDWIDTH = 40
-SUBSET_SIZE = 8000
+SUBSET_SIZE = 10000
 CUSTOM = True
-IMAGE_PATH = 'data/gorp7.jpg'
+IMAGE_PATH = 'data/gorp6.jpg'
 
 
 def load_image(image_path):
@@ -118,7 +118,8 @@ def ms_classify(input_img, spatial=False):
     labeled_img = labeled_img_flat.reshape(input_img.shape[0:2])
 
     color_list = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (127, 0, 255), (0, 127, 255),
-                  (255, 0, 127), (0, 255, 127), (255, 127, 0), (0, 127, 127), (255, 255, 0),
+                  (255, 255, 0), (255, 255, 0), (255, 0, 255), (255, 0, 127),
+                  (0, 255, 127), (255, 127, 0), (0, 127, 127), (255, 255, 0),
                   (255, 0, 255), (100, 200, 50)]
 
     plt.figure(figsize=(5,4))
