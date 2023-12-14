@@ -4,7 +4,7 @@ Project completed in CS 283 at Harvard by Alex Wilentz and Joshua Price.
 
 ![GORP](fig/Fig3.jpeg?raw=true "Title")
 
-To run the modified mean shift code, simply run `python3 classification_subset.py` in this project's directory
+To run the modified mean shift code, simply run `python3 classification_subset.py` in this project's directory.
 
 There are four global variables to adjust what happens when you run the file:
 1. BANDWIDTH: We typically use 40-50 for our GORP images.
