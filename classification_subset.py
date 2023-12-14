@@ -4,9 +4,10 @@ from sklearn.datasets import make_blobs
 import matplotlib.pyplot as plt
 import numpy as np
 from meanshift import mean_shift
+import time
 
 # Global variables
-BANDWIDTH = 43 # 45 works decently with sklearn's mean shift
+BANDWIDTH = 44 # 45 works decently with sklearn's mean shift
 SUBSET_SIZE = 10000
 CUSTOM = True
 
@@ -128,6 +129,7 @@ def ms_classify(input_img, spatial=False):
     # bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
 
     print("Starting subset clustering.")
+    t = time.time()
     if CUSTOM is True:
         cluster_centers, labels = mean_shift(img_subset, bandwidth=BANDWIDTH)
 
@@ -136,50 +138,40 @@ def ms_classify(input_img, spatial=False):
         ms.fit(img_subset)
         labels = ms.labels_
         cluster_centers = ms.cluster_centers_
+    print("Clustering time: " + str(t - time.time()))
 
     labels_unique = np.unique(labels)
     n_clusters_ = len(labels_unique)
 
-    labels_unique = np.unique(labels)
-    n_clusters_ = len(labels_unique)
 
     print("number of estimated clusters : %d" % n_clusters_)
 
-    # plt.figure(1)
-    # plt.clf()
-
-    colors = ["#dede00", "#377eb8", "#f781bf"]
-    markers = ["x", "o", "^"]
-
-    '''
-    for k, col in zip(range(n_clusters_), colors):
-        my_members = labels == k
-        cluster_center = cluster_centers[k]
-        plt.plot(img[my_members, 0], img[my_members, 1], markers[k], color=col)
-        plt.plot(
-            cluster_center[0],
-            cluster_center[1],
-            markers[k],
-            markerfacecolor=col,
-            markeredgecolor="k",
-            markersize=14,
-        )
-    #plt.title("Estimated number of clusters: %d" % n_clusters_)
-    #plt.show()
-    '''
-
-    labeled_img = np.zeros(num_pixels) - 1  # initialize all as -1
-    labeled_img[subset_idxs] = labels
+    labeled_img_flat = np.zeros(num_pixels) - 1  # initialize all as -1
+    labeled_img_flat[subset_idxs] = labels
 
     for i in range(num_pixels):
-        if labeled_img[i] == -1:
+        if labeled_img_flat[i] == -1:
             point = img[i,1:]
             label = find_nearest_neighbor_label(point, img_subset, labels)
-            labeled_img[i] = label
+            labeled_img_flat[i] = label
 
+    print("Clustering + NN time: " + str(time.time() - t))
 
-    labeled_img = labeled_img.reshape(input_img.shape[0:2])
+    labeled_img = labeled_img_flat.reshape(input_img.shape[0:2])
 
+    plt.figure(1)
+    plt.clf()
+
+    plot_features = False
+    if plot_features == True:
+
+        for k in range(len(labels_unique)):
+            my_members = labeled_img_flat == k
+            plt.plot(img[my_members, 2], img[my_members, -1], '.')
+        plt.title("Clustering with all 16384 points")
+        plt.xlabel("v*")
+        plt.ylabel("High pass filter value")
+        plt.savefig("fig/fig3_all_points.png")
 
 
     # cv2.imshow('Census', census)
@@ -192,7 +184,6 @@ def ms_classify(input_img, spatial=False):
 
         kernel2 = np.ones((3, 3), np.uint8)
         erosion_mask = cv2.erode(labelsN, kernel2)
-        print(erosion_mask)
         masks_list.append(erosion_mask)
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
@@ -220,7 +211,6 @@ def ms_classify(input_img, spatial=False):
         img_gray_3[mask==1] = color_list[j]
 
     cv2.imshow('Overlaying masks', img_gray_3)
-
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
