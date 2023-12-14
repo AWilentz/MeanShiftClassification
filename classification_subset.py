@@ -1,16 +1,15 @@
 import cv2
-from sklearn.cluster import MeanShift, estimate_bandwidth
-from sklearn.datasets import make_blobs
+from sklearn.cluster import MeanShift
 import matplotlib.pyplot as plt
 import numpy as np
 from meanshift import mean_shift
 import time
 
 # Global variables
-BANDWIDTH = 48
-SUBSET_SIZE = 5000
+BANDWIDTH = 40
+SUBSET_SIZE = 8000
 CUSTOM = True
-IMAGE_PATH = 'data/gorp12.jpg'
+IMAGE_PATH = 'data/gorp7.jpg'
 
 
 def load_image(image_path):
@@ -18,26 +17,6 @@ def load_image(image_path):
     rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
     luv = cv2.cvtColor(rgb, cv2.COLOR_RGB2Luv)
     return luv
-
-
-def census_transform(luv_img):
-    # Drawn from https://stackoverflow.com/questions/37203970/opencv-grayscale-mode-vs-gray-color-conversion
-    img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-
-    h, w = img_gray.shape
-    census = np.zeros((h - 2, w - 2), dtype='uint8')
-
-    cp = img_gray[1:h - 1, 1:w - 1]
-
-    offsets = [(u, v) for v in range(3) for u in range(3) if not u == 1 == v]
-
-    for u, v in offsets:
-        census = (census << 1) | (img_gray[v:v + h - 2, u:u + w - 2] >= cp)
-
-    census = np.pad(census, ((1, 1), (1, 1)), 'constant', constant_values=np.mean(census))
-
-    return census
 
 
 def highpass_filter(luv_img, sigma):
@@ -48,15 +27,6 @@ def highpass_filter(luv_img, sigma):
     hp_filtered_img = img_gray - cv2.GaussianBlur(img_gray, (h - 1, w - 1), sigma)
 
     return hp_filtered_img
-
-def lowpass_filter(luv_img, sigma):
-    #img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
-    img_gray = cv2.cvtColor(luv_img, cv2.COLOR_RGB2GRAY)
-
-    h, w = img_gray.shape
-    lp_filtered_img = cv2.GaussianBlur(img_gray, (h - 1, w - 1), sigma)
-
-    return lp_filtered_img
 
 
 def find_nearest_neighbor_label(point, labeled_points, labels):
@@ -81,30 +51,21 @@ def ms_classify(input_img, spatial=False):
     img_rgb_cols = img_rgb.reshape((-1, 3))
     img = np.hstack((img, img_rgb_cols))
 
-    # img[:,1] =img[:,1] * 255 / (np.max(img[:,1]) - np.min(img[:,1]))
-
-    #m = np.mean(img[:,1])
     img[:,1] = 5*(img[:,1] - np.min(img[:,1]))
 
-    sigma = np.sqrt((num_rows + num_cols) / 2) * 4
+
     hp_filtered_img = highpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) * 4)
     img = np.hstack((img, hp_filtered_img.reshape(-1, 1)))
 
-    #hp_filtered_img = highpass_filter(input_img, 0.4)
-    #img = np.hstack((img, hp_filtered_img.reshape(-1, 1)))
-
-    #lp_filtered_img = lowpass_filter(input_img, np.sqrt((num_rows + num_cols) / 2) / 2)
-    #img = np.hstack((img, lp_filtered_img.reshape(-1, 1)))
 
     vis_dims = False
     if vis_dims is True:
-        cv2.imwrite('fig/u-gorp7.png', input_img[:, :, 1] * 255)
-        cv2.imwrite('fig/v-gorp7.png', input_img[:, :, 2] * 255)
-        cv2.imwrite('fig/r-gorp7.png', img_rgb[:, :, 0] * 255)
-        cv2.imwrite('fig/g-gorp7.png', img_rgb[:, :, 1] * 255)
-        cv2.imwrite('fig/b-gorp7.png', img_rgb[:, :, 2] * 255)
-        cv2.imwrite('fig/hpf-gorp7.png', hp_filtered_img * 255)
+        cv2.imshow('U*', input_img[:, :, 1] * 255)
+        cv2.imshow('V*', input_img[:, :, 2] * 255)
+        cv2.imshow('HPF image', hp_filtered_img * 255)
 
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
 
     print("Added high pass filter dimension.")
 
@@ -123,13 +84,10 @@ def ms_classify(input_img, spatial=False):
     # subsetting procedure
     subset_idxs = np.random.choice(img.shape[0], size=SUBSET_SIZE, replace=False)
     img_subset = img[subset_idxs, 1:]
-    #img_subset=img
-    #img = img_subset
-
-    # bandwidth = estimate_bandwidth(img, quantile=0.2, n_samples=500)
 
     print("Starting subset clustering.")
     t = time.time()
+
     if CUSTOM is True:
         cluster_centers, labels = mean_shift(img_subset, bandwidth=BANDWIDTH)
 
@@ -166,7 +124,7 @@ def ms_classify(input_img, spatial=False):
     plt.figure(figsize=(5,4))
     plt.clf()
 
-    plot_features = True
+    plot_features = False
     if plot_features is True:
 
         for k in range(len(labels_unique)):
@@ -179,7 +137,6 @@ def ms_classify(input_img, spatial=False):
 
 
     i = 1
-
     masks_list = []
     for labelnum in range(len(labels_unique)):
 
@@ -190,18 +147,13 @@ def ms_classify(input_img, spatial=False):
         masks_list.append(erosion_mask)
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
-        large_enough_objs = stats[stats[:, 4] > 100]
+        large_enough_objs = stats[stats[:, 4] > 80]
         num_objs = large_enough_objs[large_enough_objs[:, 4] < 2000, :].shape[0]
         cv2.imshow('Label: ' + str(labelnum) + ', Num objs: ' + str(num_objs), erosion_mask * 255)
-
 
         if num_objs > 0:
             print("Class " + str(i) + ": " + str(num_objs) + str(" objects"))
             i += 1
-
-    # cv2.imshow('Census', census)
-
-
 
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
 
