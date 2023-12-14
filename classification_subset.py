@@ -7,9 +7,10 @@ from meanshift import mean_shift
 import time
 
 # Global variables
-BANDWIDTH = 50 # 45 works decently with sklearn's mean shift
+BANDWIDTH = 48
 SUBSET_SIZE = 5000
-CUSTOM = False
+CUSTOM = True
+IMAGE_PATH = 'data/gorp12.jpg'
 
 
 def load_image(image_path):
@@ -137,7 +138,7 @@ def ms_classify(input_img, spatial=False):
         ms.fit(img_subset)
         labels = ms.labels_
         cluster_centers = ms.cluster_centers_
-    print("Clustering time: " + str(t - time.time()))
+    print("Clustering time: " + str(time.time() - t))
 
     labels_unique = np.unique(labels)
     n_clusters_ = len(labels_unique)
@@ -154,26 +155,29 @@ def ms_classify(input_img, spatial=False):
             label = find_nearest_neighbor_label(point, img_subset, labels)
             labeled_img_flat[i] = label
 
-    print("Clustering + NN time: " + str(time.time() - t))
+    print("Clustering + nearest neighbors time: " + str(time.time() - t))
 
     labeled_img = labeled_img_flat.reshape(input_img.shape[0:2])
 
-    plt.figure(1)
+    color_list = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (127, 0, 255), (0, 127, 255),
+                  (255, 0, 127), (0, 255, 127), (255, 127, 0), (0, 127, 127), (255, 255, 0),
+                  (255, 0, 255), (100, 200, 50)]
+
+    plt.figure(figsize=(5,4))
     plt.clf()
 
-    plot_features = False
-    if plot_features == True:
+    plot_features = True
+    if plot_features is True:
 
         for k in range(len(labels_unique)):
             my_members = labeled_img_flat == k
             plt.plot(img[my_members, 2], img[my_members, -1], '.')
-        plt.title("Clustering with all 16384 points")
+        plt.title("Clustering with 4000 points")
         plt.xlabel("v*")
         plt.ylabel("High pass filter value")
-        plt.savefig("fig/fig3_all_points.png")
+        plt.savefig("fig/fig3_4000_points.png")
 
 
-    # cv2.imshow('Census', census)
     i = 1
 
     masks_list = []
@@ -186,7 +190,7 @@ def ms_classify(input_img, spatial=False):
         masks_list.append(erosion_mask)
 
         n_labels, labels, stats, centroids = cv2.connectedComponentsWithStats(erosion_mask, connectivity=4)
-        large_enough_objs = stats[stats[:, 4] > 80]
+        large_enough_objs = stats[stats[:, 4] > 100]
         num_objs = large_enough_objs[large_enough_objs[:, 4] < 2000, :].shape[0]
         cv2.imshow('Label: ' + str(labelnum) + ', Num objs: ' + str(num_objs), erosion_mask * 255)
 
@@ -197,25 +201,22 @@ def ms_classify(input_img, spatial=False):
 
     # cv2.imshow('Census', census)
 
-    color_list = [(0, 0, 255), (255, 0, 0), (0, 255, 0), (127, 0, 255), (0, 127, 255),
-                  (255, 0, 127), (0, 255, 127), (255, 127, 0), (0, 155, 127)]
+
 
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_LUV2RGB)
 
-    img_gray_3 = np.zeros((img_gray.shape[0], img_gray.shape[1], 3))
+    segmented_img = np.zeros((img_gray.shape[0], img_gray.shape[1], 3))
 
     for j in range(min([len(masks_list), len(color_list)])):
         mask = masks_list[j]
-        img_gray_3[mask==1] = color_list[j]
+        segmented_img[mask==1] = color_list[j]
 
-    cv2.imshow('Overlaying masks', img_gray_3)
+    cv2.imshow('Segmented Image', segmented_img)
 
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
-    image_path = 'data/gorp12_128.jpg'
-    gorp_img = load_image(image_path)
-    # highpass_filter(gorp_img)
+    gorp_img = load_image(IMAGE_PATH)
     ms_classify(gorp_img)
