@@ -11,26 +11,6 @@ def load_image(image_path):
     return luv
 
 
-def census_transform(luv_img):
-    # Drawn from https://stackoverflow.com/questions/37203970/opencv-grayscale-mode-vs-gray-color-conversion
-    img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
-    img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
-
-    h, w = img_gray.shape
-    census = np.zeros((h - 2, w - 2), dtype='uint8')
-
-    cp = img_gray[1:h - 1, 1:w - 1]
-
-    offsets = [(u, v) for v in range(3) for u in range(3) if not u == 1 == v]
-
-    for u, v in offsets:
-        census = (census << 1) | (img_gray[v:v + h - 2, u:u + w - 2] >= cp)
-
-    census = np.pad(census, ((1, 1), (1, 1)), 'constant', constant_values=np.mean(census))
-
-    return census
-
-
 def highpass_filter(luv_img):
     img_rgb = cv2.cvtColor(luv_img, cv2.COLOR_LUV2RGB)
     img_gray = cv2.cvtColor(img_rgb, cv2.COLOR_RGB2GRAY)
@@ -90,31 +70,8 @@ def ms_classify(input_img, spatial=False):
 
     print("number of estimated clusters : %d" % n_clusters_)
 
-    #plt.figure(1)
-    #plt.clf()
-
-    colors = ["#dede00", "#377eb8", "#f781bf"]
-    markers = ["x", "o", "^"]
-
-    '''
-    for k, col in zip(range(n_clusters_), colors):
-        my_members = labels == k
-        cluster_center = cluster_centers[k]
-        plt.plot(img[my_members, 0], img[my_members, 1], markers[k], color=col)
-        plt.plot(
-            cluster_center[0],
-            cluster_center[1],
-            markers[k],
-            markerfacecolor=col,
-            markeredgecolor="k",
-            markersize=14,
-        )
-    #plt.title("Estimated number of clusters: %d" % n_clusters_)
-    #plt.show()
-    '''
 
     labeled_img = labels.reshape(input_img.shape[0:2])
-    # cv2.imshow('Census', census)
     i = 1
     for labelnum in range(len(labels_unique)):
 
@@ -128,8 +85,6 @@ def ms_classify(input_img, spatial=False):
             print("Class " + str(i) + ": " + str(num_objs) + str(" objects"))
             i += 1
 
-    #cv2.imshow('Census', census)
-
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
@@ -137,5 +92,4 @@ def ms_classify(input_img, spatial=False):
 if __name__ == '__main__':
     image_path = '/Users/jprice/cs283/proj/MeanShiftClassification/GORP_downsample.jpeg'
     gorp_img = load_image(image_path)
-    #highpass_filter(gorp_img)
     ms_classify(gorp_img)
