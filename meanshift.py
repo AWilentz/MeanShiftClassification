@@ -11,16 +11,9 @@ def mean_shift(image, bandwidth=40, texture=False, kernel_flat=True, bandwidth_t
     data = image.reshape((-1, len(image[0]))).astype(float)
     clusters = data.copy()
 
-    max_shift = 1
-
-    shifted = [False] * len(data)
-    while max_shift > .01:
-        max_shift = 0
-        for i in tqdm(range(0, len(clusters))):
-            
-            if shifted[i]:
-                continue
-
+    for i in tqdm(range(0, len(clusters))):
+    
+        while True:
             x = clusters[i]
             x_prev = x
 
@@ -29,7 +22,6 @@ def mean_shift(image, bandwidth=40, texture=False, kernel_flat=True, bandwidth_t
                 weights = [1 if dist <= bandwidth else 0 for dist in dists]
             else:
                 weights = (1 / (bandwidth*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth)**2))
-            
 
             if texture:
                 if kernel_flat:
@@ -44,11 +36,8 @@ def mean_shift(image, bandwidth=40, texture=False, kernel_flat=True, bandwidth_t
             weights_sum = np.sum(weights)
             x = np.multiply(tiled_weights, data).sum(axis=0) / max(weights_sum, 1)
 
-            dist = euclidean_distance(x_prev, x)
-            if dist > max_shift:
-                max_shift = dist
-            if dist < .01:
-                shifted[i] = True
+            if euclidean_distance(x_prev, x) < .01:
+                break
 
             clusters[i] = x
 
