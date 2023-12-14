@@ -7,7 +7,7 @@ import math
 def euclidean_distance(x1, x2):
     return np.sqrt(np.sum((x1 - x2) ** 2))
 
-def mean_shift(image, bandwidth=24, texture=False, bandwidth_texture=24, kernel_flat=True):
+def mean_shift(image, bandwidth=40, texture=False, kernel_flat=True, bandwidth_texture=40):
     data = image.reshape((-1, len(image[0]))).astype(float)
     clusters = data.copy()
 
@@ -32,7 +32,10 @@ def mean_shift(image, bandwidth=24, texture=False, bandwidth_texture=24, kernel_
             
 
             if texture:
-                weights_texture = (1 / (bandwidth_texture*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth_texture)**2))
+                if kernel_flat:
+                    weights_texture = [1 if dist <= bandwidth else 0 for dist in dists]
+                else:
+                    weights_texture = (1 / (bandwidth_texture*math.sqrt(2*math.pi))) * np.exp(-0.5*((dists / bandwidth_texture)**2))
                 tiled_weights = np.concatenate((np.tile(weights, [len(x[:-1]), 1]).transpose(),
                                                 np.tile(weights_texture, [1, 1]).transpose()), axis=-1)
             else:
